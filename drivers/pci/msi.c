@@ -31,7 +31,7 @@ static int pci_msi_enable = 1;
 /* Arch hooks */
 
 #ifndef arch_msi_check_device
-int arch_msi_check_device(struct pci_dev *dev, int nvec, int type)
+int __weak arch_msi_check_device(struct pci_dev *dev, int nvec, int type)
 {
 	return 0;
 }

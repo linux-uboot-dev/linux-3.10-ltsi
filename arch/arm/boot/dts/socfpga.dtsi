@@ -914,5 +914,29 @@
 			clocks = <&per_base_clk>;
 			status = "disabled";
 		};
+
+		msi_to_gic_gen_0: msi@0xFF200000 {                        
+			compatible = "ALTR,msi-1.0", "altr,msi-1.0";
+                        reg = 	< 0xFF200080 0x10 >, 
+                                < 0xFF200000  0x08 >;
+                        reg-names = "csr", "vector_slave";
+                        interrupt-parent = < &intc >;
+                        interrupts = < 0 42 4 >;
+                        msi-controller = < 1 >;        
+                        num-vectors = < 32 >;        
+                }; //end msi@0x100000080 (msi_to_gic_gen_0)
+                
+                pcie_cv_hip_avmm_0: pcie@0x000000000 {
+                        compatible = "ALTR,pcie-root-port-13.1", "altr,pcie-root-port-1.0";
+                        reg = < 0xff220000 0x00004000 >, 
+                                < 0xc0000000  0x20000000 >;
+                        reg-names = "Cra","Txs";
+                        interrupt-parent = < &intc >;
+                        interrupts = < 0 40 4 >;
+                        interrupt-controller;
+                        #interrupt-cells = < 1 >;
+                        altr,msi = < &msi_to_gic_gen_0 >;        
+                        device_type = "pci";        
+                }; //end pcie@0x000000000 (pcie_cv_hip_avmm_0)
 	};
 };
