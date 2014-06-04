@@ -100,6 +100,11 @@ static int at803x_config_init(struct phy_device *phydev)
 	phydev->supported = features;
 	phydev->advertising = features;
 
+#ifdef  CONFIG_ARCH_SOCFPGA
+	phy_write(phydev, 0x1d, 0x05);
+	phy_write(phydev,  0x1e, 0x0100);
+	printk("Phy AR8035 is inited!\n");	
+#endif
 	/* enable WOL */
 	at803x_set_wol_mac_addr(phydev);
 	status = phy_write(phydev, AT803X_INTR_ENABLE, AT803X_WOL_ENABLE);
