@@ -221,8 +221,6 @@ static int dw_gpio_probe(struct platform_device *pdev)
 		wake_up_process(thread_handle);
 
 	}
-	else
-		printk(KERN_INFO"switch scan disable\n");
 	/* add for lark board end */
 	
 	return 0;
