@@ -140,7 +140,7 @@
 	};
 	*/
 	rtc@68 {
-		compatible = "dallas,ds1339";
+		compatible = "dallas,ds3231";
 		reg = <0x68>;
 	};
 	ch7033: ch7033@76 {
