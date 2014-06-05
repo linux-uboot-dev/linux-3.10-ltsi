@@ -121,6 +121,7 @@
 	 * adjust the falling times to decrease the i2c frequency to 50Khz
 	 * because the LCD module does not work at the standard 100Khz
 	 */
+	 /*
 	i2c-sda-falling-time-ns = <5000>;
 	i2c-scl-falling-time-ns = <5000>;
 
@@ -137,10 +138,15 @@
 		reg = <0x51>;
 		pagesize = <32>;
 	};
-
+	*/
 	rtc@68 {
 		compatible = "dallas,ds1339";
 		reg = <0x68>;
+	};
+	ch7033: ch7033@76 {
+		compatible = "chrontel,ch7033";
+		reg = <0x76>;
+		hpd-gpio = <&gpio1 19 0>;
 	};
 };
 

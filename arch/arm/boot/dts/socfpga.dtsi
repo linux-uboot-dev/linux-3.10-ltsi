@@ -914,29 +914,37 @@
 			clocks = <&per_base_clk>;
 			status = "disabled";
 		};
-
+		
+		alt_vip_vfr_1: vip@0xFF200100 {
+			compatible = "ALTR,vip-frame-reader-13.0", "ALTR,vip-frame-reader-9.1";
+			reg = < 0xFF210100 0x00000080 >,
+				  < 0xFF208000 0x00000400 >;
+			reg-names = "vfr_reg","itc_reg";
+			mem-word-width = < 64 >;
+		}; 
+		
 		msi_to_gic_gen_0: msi@0xFF200000 {                        
 			compatible = "ALTR,msi-1.0", "altr,msi-1.0";
-                        reg = 	< 0xFF200080 0x10 >, 
-                                < 0xFF200000  0x08 >;
-                        reg-names = "csr", "vector_slave";
-                        interrupt-parent = < &intc >;
-                        interrupts = < 0 42 4 >;
-                        msi-controller = < 1 >;        
-                        num-vectors = < 32 >;        
-                }; //end msi@0x100000080 (msi_to_gic_gen_0)
+			reg = 	< 0xFF200080 0x10 >, 
+					< 0xFF200000  0x08 >;
+			reg-names = "csr", "vector_slave";
+			interrupt-parent = < &intc >;
+			interrupts = < 0 42 4 >;
+			msi-controller = < 1 >;        
+			num-vectors = < 32 >;        
+        }; 
                 
-                pcie_cv_hip_avmm_0: pcie@0x000000000 {
-                        compatible = "ALTR,pcie-root-port-13.1", "altr,pcie-root-port-1.0";
-                        reg = < 0xff220000 0x00004000 >, 
-                                < 0xc0000000  0x20000000 >;
-                        reg-names = "Cra","Txs";
-                        interrupt-parent = < &intc >;
-                        interrupts = < 0 40 4 >;
-                        interrupt-controller;
-                        #interrupt-cells = < 1 >;
-                        altr,msi = < &msi_to_gic_gen_0 >;        
-                        device_type = "pci";        
-                }; //end pcie@0x000000000 (pcie_cv_hip_avmm_0)
+		pcie_cv_hip_avmm_0: pcie@0x000000000 {
+			compatible = "ALTR,pcie-root-port-13.1", "altr,pcie-root-port-1.0";
+			reg = < 0xff220000 0x00004000 >, 
+					< 0xc0000000  0x20000000 >;
+			reg-names = "Cra","Txs";
+			interrupt-parent = < &intc >;
+			interrupts = < 0 40 4 >;
+			interrupt-controller;
+			#interrupt-cells = < 1 >;
+			altr,msi = < &msi_to_gic_gen_0 >;        
+			device_type = "pci";        
+		}; 
 	};
 };

@@ -2480,6 +2480,21 @@ config FB_ALTERA_VIP
 	  This driver supports the Altera Video and Image Processing(VIP)
 	  Frame Reader
 
+config FB_LARK_BOARD
+	tristate "Lark board Altera framebuffer support"
+	depends on FB
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+	  This is the frame buffer driver for the VGA controller
+
+config CH7033
+	tristate "ch7033 support"
+	depends on FB
+	help
+	  This is the ch7033 driver
+	  
 source "drivers/video/omap/Kconfig"
 source "drivers/video/omap2/Kconfig"
 source "drivers/video/exynos/Kconfig"

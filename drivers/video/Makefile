@@ -171,7 +171,9 @@ obj-$(CONFIG_FB_SIMPLE)           += simplefb.o
 
 # the test framebuffer is last
 obj-$(CONFIG_FB_VIRTUAL)          += vfb.o
-
+# add for lark board 
+obj-$(CONFIG_FB_LARK_BOARD)	+= larkboardfb.o
+obj-$(CONFIG_CH7033)	+= ch7033.o
 #video output switch sysfs driver
 obj-$(CONFIG_VIDEO_OUTPUT_CONTROL) += output.o
 obj-$(CONFIG_VIDEOMODE_HELPERS) += display_timing.o videomode.o
