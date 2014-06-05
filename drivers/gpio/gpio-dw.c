@@ -53,6 +53,7 @@ struct dw_gpio_instance {
 	int irq_base;		/* base number for the "virtual" GPIO IRQs */
 	u32 irq_mask;		/* IRQ mask */
 	spinlock_t gpio_lock;	/* Lock used for synchronization */
+	struct task_struct       *thread_handle;
 };
 
 static int dw_gpio_get(struct gpio_chip *gc, unsigned offset)
@@ -210,6 +211,7 @@ static int dw_gpio_probe(struct platform_device *pdev)
 
 	/* add for lark board begin */
 	if (of_property_read_bool(np, "enable-switch")){
+		printk(KERN_INFO"switch scan enable\n");
 		thread_handle = kthread_create(thread_switch_scan, &chip->mmchip, "thread_switch_scan:0:0");
 		if (IS_ERR(thread_handle)) {
             pr_err("error in create thread_switch_scan thread \n");
@@ -219,6 +221,8 @@ static int dw_gpio_probe(struct platform_device *pdev)
 		wake_up_process(thread_handle);
 
 	}
+	else
+		printk(KERN_INFO"switch scan disable\n");
 	/* add for lark board end */
 	
 	return 0;

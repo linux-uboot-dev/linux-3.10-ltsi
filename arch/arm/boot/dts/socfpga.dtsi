@@ -554,6 +554,7 @@
 			gpio-controller;
 			#gpio-cells = <2>;
 			clocks = <&per_base_clk>;
+			enable-switch = <1>;/* add for larkboard */
 		};
 
 		hps_0_fpgamgr: fpgamgr@0xff706000 {
