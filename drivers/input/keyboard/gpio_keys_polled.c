@@ -42,6 +42,7 @@ struct gpio_keys_polled_dev {
 	struct device *dev;
 	const struct gpio_keys_platform_data *pdata;
 	struct gpio_keys_button_data data[0];
+	void __iomem *gpio_regs;
 };
 
 static void gpio_keys_polled_check_state(struct input_dev *input,
@@ -54,8 +55,9 @@ static void gpio_keys_polled_check_state(struct input_dev *input,
 		state = !!gpio_get_value_cansleep(button->gpio);
 	else
 		state = !!gpio_get_value(button->gpio);
-
+		
 	if (state != bdata->last_state) {
+		printk("key state changed\n");
 		unsigned int type = button->type ?: EV_KEY;
 
 		input_event(input, type, button->code,
@@ -216,6 +218,7 @@ static int gpio_keys_polled_probe(struct platform_device *pdev)
 	int error;
 	int i;
 
+	printk(KERN_INFO"gpio_keys_polled_probe------------------------\n");
 	if (!pdata) {
 		pdata = gpio_keys_polled_get_devtree_pdata(dev);
 		if (IS_ERR(pdata))

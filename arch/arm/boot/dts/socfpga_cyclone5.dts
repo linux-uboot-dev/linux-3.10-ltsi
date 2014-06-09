@@ -90,7 +90,35 @@
 		watchdog0: wd@ffd02000 {
 			status = "okay";
 		};
-
+		gpio_keys_polled { 
+			compatible = "gpio-keys-polled";
+			//reg = <0xff70a000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			poll-interval = <100>;
+			autorepeat;
+			button1{ 
+				label = "hps_key1";
+				linux,code = <103>;
+				gpios = <&gpio2 21 1>; 
+			};
+			button2{ 
+				label = "hps_key2";
+				linux,code = <104>;
+				gpios = <&gpio2 22 1>; 
+			};
+			button3{ 
+				label = "hps_key3";
+				linux,code = <105>;
+				gpios = <&gpio2 23 1>; 
+			};
+			button4{ 
+				label = "hps_key4";
+				linux,code = <106>;
+				gpios = <&gpio2 24 1>; 
+			};
+		};
+				
 		leds {
 			compatible = "gpio-leds";
 			hps0 {

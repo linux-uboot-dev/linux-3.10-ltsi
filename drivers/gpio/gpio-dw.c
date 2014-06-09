@@ -53,7 +53,6 @@ struct dw_gpio_instance {
 	int irq_base;		/* base number for the "virtual" GPIO IRQs */
 	u32 irq_mask;		/* IRQ mask */
 	spinlock_t gpio_lock;	/* Lock used for synchronization */
-	struct task_struct       *thread_handle;
 };
 
 static int dw_gpio_get(struct gpio_chip *gc, unsigned offset)
@@ -113,48 +112,6 @@ static int dw_gpio_direction_output(struct gpio_chip *gc,
 	return 0;
 }
 
-
-/* add for lark board begin */
-static int thread_switch_scan(void *arg)
-{
-	u32 gpio_value;
-	u8 enable_scan = 1;
-	struct of_mm_gpio_chip *mmchip = (struct of_mm_gpio_chip *)arg;
-	
-	printk(KERN_INFO"thread_switch_scan..............\n");
-	while(enable_scan){
-		msleep(100);
-		gpio_value =  __raw_readl(mmchip->regs + DW_GPIO_EXT);
-		if( (gpio_value&0x01e00000) != 0x01e00000){
-			msleep(30);
-			if( (gpio_value&0x01e00000) != 0x01e00000){
-				switch(gpio_value&0x01e00000){
-					case 0x01c00000:
-						printk(KERN_INFO"key 1 pressed\n");
-					break;
-					case 0x01a00000:
-						printk(KERN_INFO"key 2 pressed\n");
-					break;
-
-					case 0x01600000:
-						printk(KERN_INFO"key 3 pressed\n");
-					break;
-
-					case 0x00e00000:
-						printk(KERN_INFO"key 4 pressed\n");
-					break;
-					default:
-						printk(KERN_INFO"unknow key\n");
-				}
-			}
-		}
-		
-	}
-	return 1;
-}
-/* add for lark board end */
-
-
 /* 
  * dw_gpio_probe - Probe method for the GPIO device.
  * @np: pointer to device tree node
@@ -208,20 +165,6 @@ static int dw_gpio_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, chip);
-
-	/* add for lark board begin */
-	if (of_property_read_bool(np, "enable-switch")){
-		printk(KERN_INFO"switch scan enable\n");
-		thread_handle = kthread_create(thread_switch_scan, &chip->mmchip, "thread_switch_scan:0:0");
-		if (IS_ERR(thread_handle)) {
-            pr_err("error in create thread_switch_scan thread \n");
-            return 0;
-    	}
-		chip->thread_handle = thread_handle;
-		wake_up_process(thread_handle);
-
-	}
-	/* add for lark board end */
 	
 	return 0;
 }
@@ -235,12 +178,6 @@ static int dw_gpio_remove(struct platform_device *pdev)
 	status = gpiochip_remove(&chip->mmchip.gc);
 	if (status < 0)
 		return status;
-	/* add for lark board begin */
-	if(chip->thread_handle){
-		kthread_stop(chip->thread_handle);  
-		chip->thread_handle = NULL;  
-	}
-	/* add for lark board end */
 	kfree(chip);
 	return -EIO;
 }
