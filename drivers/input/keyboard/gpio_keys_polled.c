@@ -218,7 +218,6 @@ static int gpio_keys_polled_probe(struct platform_device *pdev)
 	int error;
 	int i;
 
-	printk(KERN_INFO"gpio_keys_polled_probe------------------------\n");
 	if (!pdata) {
 		pdata = gpio_keys_polled_get_devtree_pdata(dev);
 		if (IS_ERR(pdata))

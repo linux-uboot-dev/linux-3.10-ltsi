@@ -931,7 +931,8 @@
 			interrupt-parent = < &intc >;
 			interrupts = < 0 42 4 >;
 			msi-controller = < 1 >;        
-			num-vectors = < 32 >;        
+			num-vectors = < 32 >;      
+			//status = "disabled";
         }; 
                 
 		pcie_cv_hip_avmm_0: pcie@0x000000000 {
@@ -944,7 +945,8 @@
 			interrupt-controller;
 			#interrupt-cells = < 1 >;
 			altr,msi = < &msi_to_gic_gen_0 >;        
-			device_type = "pci";        
+			device_type = "pci";     
+			//status = "disabled";
 		}; 
 	};
 };
