@@ -921,6 +921,7 @@
 				  < 0xFF208000 0x00000400 >;
 			reg-names = "vfr_reg","itc_reg";
 			mem-word-width = < 64 >;
+			//status = "disabled";
 		}; 
 		
 		msi_to_gic_gen_0: msi@0xFF200000 {                        

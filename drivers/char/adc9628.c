@@ -32,6 +32,7 @@ static DEFINE_MUTEX(adc_mutex);
 static int max_adc_minors = 1;
 
 static void __iomem * gRegbase = 0;
+static void __iomem * gFifobase = 0;
 
 
 module_param(max_adc_minors, int, 0);
@@ -167,9 +168,6 @@ static void bsp_adc_init(struct adc_priv_data *adc_data)
 
 static int adc_open(struct inode *inode, struct file *filp)
 {
-	const int minor = iminor(inode);
-	int err;
-	
 
 	struct adc_priv_data *adc_data;
 
@@ -183,30 +181,9 @@ static int adc_open(struct inode *inode, struct file *filp)
 	if (!adc_data->adc_buff) {
 		return -ENOMEM;
 	}
-
-	if (!request_mem_region(BSP_ADC_ADDR,sizeof(u32),"adc9628")) {
-		printk( "Memory region busy\n");
-		return  -EBUSY;
-
-	}
-	adc_data->regbase = ioremap_nocache(BSP_ADC_ADDR, sizeof(u32));
-	if(!adc_data->regbase) {
-	    printk( KERN_INFO"adc_open ioremap failed\n");
-		return -EIO;
-	}
 	
-	gRegbase = adc_data->regbase;
-
-	if (!request_mem_region(BSP_FIFO_BASE,sizeof(u32)*1024,"adc9628_fifo")) {
-		printk( KERN_INFO"Memory region busy\n");
-		return  -EBUSY;
-
-	}
-	adc_data->fifobase = ioremap_nocache(BSP_FIFO_BASE, sizeof(u32)*1024);
-	if(!adc_data->fifobase) {
-	    printk( KERN_INFO"adc_open ioremap failed\n");
-		return -EIO;
-	}
+	adc_data->regbase = gRegbase;
+	adc_data->fifobase = gFifobase;
 
     bsp_adc_init(adc_data);
 	//mutex_lock(&adc_mutex);
@@ -234,7 +211,9 @@ ssize_t adc_read(struct file *filp, char __user *buf, size_t count, loff_t *off)
 	struct adc_priv_data *adc_data = filp->private_data;
 	u8 val = 0;
 	int i;
-	u32 real_val;
+	u32 tmp;
+
+	printk(KERN_INFO"ad9628 read------------------------!\n");
 	
     val = readb(adc_data->regbase);
     val |= ADC_RESET_BIT;
@@ -249,12 +228,17 @@ ssize_t adc_read(struct file *filp, char __user *buf, size_t count, loff_t *off)
 		count = 1024*4;
 	
     for (i=0;i < count/4;i++){
-		adc_data->adc_buff[i] = readl(adc_data->fifobase + i*4);
+		tmp = readl(adc_data->fifobase + i*4);
+		
+		adc_data->adc_buff[i] = tmp;
 
+		if(i<400)
+			printk(KERN_INFO"read value 0x%x\n",tmp);
     }
 	if (copy_to_user((void __user *)buf, adc_data->adc_buff, count))
 		return 0;
 
+	printk(KERN_INFO"ad9628 read done\n"); 
 	return count;
 }
 
@@ -298,6 +282,28 @@ static int __init adc9628_init(void)
 	}
 	adc_class->devnode = adc_devnode;
 	device_create(adc_class, NULL, MKDEV(LARK_ADC_MAJOR, 0), NULL, "adc");
+
+	if (!request_mem_region(BSP_ADC_ADDR,sizeof(u32),"adc9628")) {
+		printk( "Memory region busy\n");
+		return  -EBUSY;
+
+	}
+	gRegbase = ioremap_nocache(BSP_ADC_ADDR, sizeof(u32));
+	if(!gRegbase) {
+	    printk( KERN_INFO" ioremap failed\n");
+		return -EIO;
+	}
+	
+	if (!request_mem_region(BSP_FIFO_BASE,sizeof(u32)*1024,"adc9628_fifo")) {
+		printk( KERN_INFO"Memory region busy\n");
+		return  -EBUSY;
+
+	}
+	gFifobase = ioremap_nocache(BSP_FIFO_BASE, sizeof(u32)*1024);
+	if(!gFifobase) {
+	    printk( KERN_INFO" ioremap failed\n");
+		return -EIO;
+	}
 
 	return 0;
 
