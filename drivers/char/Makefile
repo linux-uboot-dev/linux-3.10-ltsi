@@ -65,4 +65,4 @@ obj-$(CONFIG_TILE_SROM)		+= tile-srom.o
 
 obj-$(CONFIG_SLDHUB)	+= sld-hub.o
 
-obj-y	+= adc9628.o
+obj-$(CONFIG_ADC9628)	+= adc9628.o

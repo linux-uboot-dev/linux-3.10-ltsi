@@ -612,5 +612,7 @@ config SLDHUB
 	help
 		The System-Level Debug HUB supports debugging of Altera FPGA Designs
 
+config ADC9628
+	tristate "adc9628 driver"
 endmenu
 
