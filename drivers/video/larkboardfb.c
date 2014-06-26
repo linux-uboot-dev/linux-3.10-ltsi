@@ -416,11 +416,11 @@ static int altfb_probe(struct platform_device *pdev)
     match = of_match_node(altfb_match, pdev->dev.of_node);
     if(!match)
         return -ENODEV;
-
+	
     fbdev = kzalloc(sizeof(struct altfb_dev), GFP_KERNEL);
     if(!fbdev)
         return -ENOMEM;
-
+	
     fbdev->pdev = pdev;
     fbdev->type = match->data;
 
