@@ -53,36 +53,36 @@ static u8 ad9628_read(int reg)
     u8 val;
 
     header = (0x1<<15) | (reg);
-    writew(0x4,gRegbase +(0x5*4)); 					//cs = 0;//pio_clr = 0x4;
+    writew(0x4,gRegbase +(0x5*4)); 					/* cs = 0 */
     udelay(1);
 
     for(i = 0; i < 16; i++){
-        if( (header>>(15-i)) & 0x1 )  				//while bit[15-i] = 1
-        	writew(0x1,gRegbase + (0x4*4)); 		//pio_set = bit0;
+        if( (header>>(15-i)) & 0x1 )  				
+        	writew(0x1,gRegbase + (0x4*4)); 		
         else
-        	writew(0x1,gRegbase + (0x5*4)); 		//pio_clr = bit0;
+        	writew(0x1,gRegbase + (0x5*4)); 		/* pio_clr = bit0 */
 
         udelay(1);
-        writew(0x2,gRegbase + (0x5*4)); 			//sclk=1;
+        writew(0x2,gRegbase + (0x5*4)); 			/* sclk=1 */
         udelay(1);
-        writew(0x2,gRegbase + (0x4*4)); 			//sclk=0;
+        writew(0x2,gRegbase + (0x4*4)); 			/* sclk=0 */
     }
-    writew(0x6,gRegbase + (0x1*4)); 				//pio_dir = 0x6; bit0 input
+    writew(0x6,gRegbase + (0x1*4)); 				
     result = 0;
     udelay(1);
 	
     for(i = 0; i < 8; i++){
-    	writew(0x2,gRegbase + (0x5*4)); 			//sclk=1;
+    	writew(0x2,gRegbase + (0x5*4)); 			/* sclk=1 */
         udelay(1);
         val = readb(gRegbase);
-        if (val  & 0x1)  							//(pio_data & bit0)
+        if (val  & 0x1)  							
             result = result | (0x1<<(7-i));
 
-        writew(0x2,gRegbase + (0x4*4)); 			//sclk=0;
+        writew(0x2,gRegbase + (0x4*4)); 			/* sclk=0 */
         udelay(1);
     }
-    writew(0x4,gRegbase + (0x4*4)); 				//cs =  1;
-    writew(0x7,gRegbase + (0x1*4)); 				//pio_dir = 0x7;
+    writew(0x4,gRegbase + (0x4*4)); 				/* cs =  1 */
+    writew(0x7,gRegbase + (0x1*4)); 				
 
     return result;
 }
@@ -94,22 +94,22 @@ static void ad9628_write(int reg, int val)
 
 
     header = ( (0x0<<23) | (reg<<8) | (val&0xff) );
-    writew(0x4,gRegbase + (0x5*4)); 			//cs = 0;//pio_clr = 0x4;
+    writew(0x4,gRegbase + (0x5*4)); 			/* cs = 0 */
     udelay(2);
 
     for(i = 0; i < 24; i++){
-        if( (header>>(23-i)) & 0x1 )  			//while bit[15-i] = 1
-        	writew(0x1,gRegbase + (0x4*4));		//pio_set = bit0;
+        if( (header>>(23-i)) & 0x1 )  			
+        	writew(0x1,gRegbase + (0x4*4));		/* pio_set = bit0 */
         else
-        	writew(0x1,gRegbase + (0x5*4)); 	//pio_clr = bit0;
+        	writew(0x1,gRegbase + (0x5*4)); 	/* pio_clr = bit0 */
 
         udelay(1);
-        writew(0x2,gRegbase + (0x5*4)); 		//sclk=1;
+        writew(0x2,gRegbase + (0x5*4)); 		/* sclk=1 */
         udelay(1);
-        writew(0x2,gRegbase + (0x4*4)); 		//sclk=0;
+        writew(0x2,gRegbase + (0x4*4)); 		/* sclk=0 */
     }
     udelay(1);
-    writew(0x4,gRegbase + (0x4*4)); 			//cs =  1;
+    writew(0x4,gRegbase + (0x4*4)); 			/* cs =  1 */
 
 }
 
@@ -119,59 +119,52 @@ static void bsp_adc_cmos(void)
 	ad9628_write(0x14, 0x01);
 }
 
+/*
+*init the registers of ADC9628,
+*write to Altera's PIO IP core to operate the gpio as spi pins
+*/
 static void bsp_adc_init(struct adc_priv_data *adc_data)
 {
     int iadc_val  ;
 
 
-    writew( 0x7,adc_data->regbase + (0x1*4)); 						//pio_dir = 0x7;
-	writew( 0x6,adc_data->regbase + (0x4*4)); 						//cs = 1£¬
-	writew( 0x2,adc_data->regbase + (0x4*4)); 						//sclk=0;
+    writew( 0x7,adc_data->regbase + (0x1*4)); 						/* pio_dir = 0x7 */
+	writew( 0x6,adc_data->regbase + (0x4*4)); 						/* cs = 1  */
+	writew( 0x2,adc_data->regbase + (0x4*4)); 						/* sclk=0 */
 	mdelay(2);
 
-    iadc_val = ad9628_read(0x1 );  // chip ID, 0x89
+    iadc_val = ad9628_read(0x1 );  									/*  chip ID, 0x89 */
 
     printk(KERN_INFO"current id = %x \n", iadc_val);
 
-    iadc_val = ad9628_read(0x2 );  // chip grade, 0x89
-	iadc_val = ad9628_read(0x0b ); ///clock divide
+    iadc_val = ad9628_read(0x2 );  									/*  chip grade */
+	iadc_val = ad9628_read(0x0b ); 									/* clock divide */
 	iadc_val = 0x0;
 	ad9628_write(0x0b, iadc_val);
 	iadc_val = ad9628_read(0x0b );
-    iadc_val = ad9628_read(0x09 );  //DUTY stabilty
-	iadc_val = ad9628_read(0x0b );  //clock ratio
-	ad9628_write(0x05, 0x03);  // Channel a b
+    iadc_val = ad9628_read(0x09 );  								/* DUTY stabilty */
+	iadc_val = ad9628_read(0x0b );  								/* clock ratio */
+	ad9628_write(0x05, 0x03); 									    /*  Channel a b */
     iadc_val = ad9628_read(0x5 );
-	ad9628_write(0x0d, 0x0);  // normal mode
+	ad9628_write(0x0d, 0x0);  										/*  normal mode */
 
-//	ad9628_write(0x0d, 0x08);  // test mode
     iadc_val = ad9628_read(0xd );
+	iadc_val = ad9628_read(0x101 ); 							
 
-//	ad9628_write(0x19, 0x34); //lsb
-//	ad9628_write(0x1A, 0x12); //msb
-//	ad9628_write(0x1B, 0x50);
-//	ad9628_write(0x1C, 0x50);
-	iadc_val = ad9628_read(0x101 ); ///oeb = 1
-
-	iadc_val |= (0X1<<7);
+	iadc_val |= (0x1<<7);
 	ad9628_write(0x101, iadc_val);
 	iadc_val = ad9628_read(0x101 );
 
-//	ad9628_write(0x14, 0x81);  // lvds
-//	ad9628_write(0x14, 0xC1);  // lvds
 	bsp_adc_cmos();
 	iadc_val = ad9628_read(0x14 );
 
 }
 
 
-
 static int adc_open(struct inode *inode, struct file *filp)
 {
 
 	struct adc_priv_data *adc_data;
-
-	printk(KERN_INFO"ad9628 open------------------------!\n");
 
 	adc_data = kzalloc(sizeof(struct adc_priv_data), GFP_KERNEL);
 	if (!adc_data) {
@@ -186,11 +179,8 @@ static int adc_open(struct inode *inode, struct file *filp)
 	adc_data->fifobase = gFifobase;
 
     bsp_adc_init(adc_data);
-	//mutex_lock(&adc_mutex);
-
-	
 	filp->private_data = adc_data;
-	//mutex_unlock(&adc_mutex);
+
 	return 0;
 }
 
@@ -213,38 +203,30 @@ ssize_t adc_read(struct file *filp, char __user *buf, size_t count, loff_t *off)
 	int i;
 	u32 tmp;
 
-	printk(KERN_INFO"ad9628 read------------------------!\n");
-	
     val = readb(adc_data->regbase);
     val |= ADC_RESET_BIT;
-    writew( ADC_RESET_BIT,adc_data->regbase + (0x1*4)); 	//bit7: 1-out
-    writew( val,adc_data->regbase + (0x4*4)); 				//pio_set 1,  bit8;
+    writew( ADC_RESET_BIT,adc_data->regbase + (0x1*4)); 	/* bit7: 1-out */
+    writew( val,adc_data->regbase + (0x4*4)); 				/* pio_set 1,  bit8 */
     udelay(1);
-    writew( val,adc_data->regbase + (0x5*4)); 				//pio_clr 0,  bit8; clear fifo
-    writew( val,adc_data->regbase + (0x4*4)); 				//pio_set 1,  bit8;
+    writew( val,adc_data->regbase + (0x5*4)); 				/* pio_clr 0,  bit8 */
+    writew( val,adc_data->regbase + (0x4*4)); 				/* pio_set 1,  bit8 */
     
-    mdelay(1000);
-	if(count > 1024*4)
+    mdelay(1000);											/* wait for FPGA complete writing the adc data */
+	if(count > 1024*4)										/* by default fpga just write 1024 32-bits */
 		count = 1024*4;
 	
     for (i=0;i < count/4;i++){
 		tmp = readl(adc_data->fifobase + i*4);
-		
 		adc_data->adc_buff[i] = tmp;
-
-		if(i<400)
-			printk(KERN_INFO"read value 0x%x\n",tmp);
     }
 	if (copy_to_user((void __user *)buf, adc_data->adc_buff, count))
 		return 0;
 
-	printk(KERN_INFO"ad9628 read done\n"); 
 	return count;
 }
 
 static const struct file_operations adc_fops = {
 	.read		= adc_read,
-	//.write		= adc_write,
 	.open		= adc_open,
 	.release		= adc_release,
 	.owner		= THIS_MODULE,
