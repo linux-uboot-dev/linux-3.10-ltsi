@@ -133,7 +133,7 @@
 
 			hps2 {
 				label = "hps_led2";
-				gpios = <&gpio1 15 1>; //DTB
+				gpios = <&gpio1 20 1>; 
 			};
 
 			hps3 {
