@@ -140,6 +140,7 @@
 				label = "hps_led3";
 				gpios = <&gpio2 4 1>;
 			};
+			
 		};
 	};
 };

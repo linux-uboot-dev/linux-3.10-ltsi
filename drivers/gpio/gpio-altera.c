@@ -64,6 +64,7 @@ static void altera_gpio_irq_unmask(struct irq_data *d)
 	unsigned long flags;
 	unsigned int intmask;
 
+	//printk(KERN_INFO"altera_gpio_irq_unmask\n");
 	spin_lock_irqsave(&altera_gc->gpio_lock, flags);
 	intmask = readl(mm_gc->regs + ALTERA_GPIO_IRQ_MASK);
 	/* Set ALTERA_GPIO_IRQ_MASK bit to unmask */
@@ -79,6 +80,7 @@ static void altera_gpio_irq_mask(struct irq_data *d)
 	unsigned long flags;
 	unsigned int intmask;
 
+	//printk(KERN_INFO"altera_gpio_irq_mask\n");
 	spin_lock_irqsave(&altera_gc->gpio_lock, flags);
 	intmask = readl(mm_gc->regs + ALTERA_GPIO_IRQ_MASK);
 	/* Clear ALTERA_GPIO_IRQ_MASK bit to mask */
@@ -92,6 +94,7 @@ static int altera_gpio_irq_set_type(struct irq_data *d,
 {
 	struct altera_gpio_chip *altera_gc = irq_data_get_irq_chip_data(d);
 
+	//printk(KERN_INFO"altera_gpio_irq_set_type\n");
 	if (type == IRQ_TYPE_NONE)
 		return 0;
 
@@ -115,6 +118,7 @@ static int altera_gpio_irq_set_type(struct irq_data *d,
 
 static unsigned int altera_gpio_irq_startup(struct irq_data *d)
 {
+	//printk(KERN_INFO"altera_gpio_irq_startup\n");
 	altera_gpio_irq_unmask(d);
 
 	return 0;
@@ -122,6 +126,7 @@ static unsigned int altera_gpio_irq_startup(struct irq_data *d)
 
 static void altera_gpio_irq_shutdown(struct irq_data *d)
 {
+	printk(KERN_INFO"altera_gpio_irq_shutdown\n");
 	altera_gpio_irq_unmask(d);
 }
 
@@ -138,7 +143,9 @@ static int altera_gpio_get(struct gpio_chip *gc, unsigned offset)
 {
 	struct of_mm_gpio_chip *mm_gc = to_of_mm_gpio_chip(gc);
 
-	return !!(readl(mm_gc->regs + ALTERA_GPIO_DATA) >> offset);
+	//printk(KERN_INFO"altera_gpio_get: value is %d\n",(readl(mm_gc->regs + ALTERA_GPIO_DATA)) );
+	//printk(KERN_INFO"offset is %d\n",offset);
+	return !!( (readl(mm_gc->regs + ALTERA_GPIO_DATA) >> offset)&0x00000001 );
 }
 
 static void altera_gpio_set(struct gpio_chip *gc, unsigned offset, int value)
@@ -209,7 +216,7 @@ static int altera_gpio_to_irq(struct gpio_chip *gc, unsigned offset)
 	struct of_mm_gpio_chip *mm_gc = to_of_mm_gpio_chip(gc);
 	struct altera_gpio_chip *altera_gc = container_of(mm_gc,
 				struct altera_gpio_chip, mmchip);
-
+	
 	if (!altera_gc->domain)
 		return -ENXIO;
 	if (offset < altera_gc->mmchip.gc.ngpio)
@@ -226,7 +233,7 @@ static void altera_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
 	unsigned long status;
 
 	int i;
-
+	//printk("altera_gpio_irq_test called\n");
 	chained_irq_enter(chip, desc);
 	/* Handling for level trigger and edge trigger is different */
 	if (altera_gc->interrupt_trigger == IRQ_TYPE_LEVEL_HIGH) {
@@ -248,6 +255,12 @@ static void altera_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
 				if (status & BIT(i)) {
 					generic_handle_irq(irq_find_mapping(
 						altera_gc->domain, i));
+
+
+					writel_relaxed(0,
+					mm_gc->regs + ALTERA_GPIO_EDGE_CAP);
+					
+
 				}
 			}
 		}
@@ -271,10 +284,18 @@ static struct irq_domain_ops altera_gpio_irq_ops = {
 	.xlate = irq_domain_xlate_onecell,
 };
 
+
+static irqreturn_t altera_gpio_irq_test(int irq, void *handle)
+{
+	printk("altera_gpio_irq_test called\n");
+	return IRQ_HANDLED;
+}
+
 int altera_gpio_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
 	int i, id, reg, ret;
+	int test_gpio,tmp_irq;
 	struct altera_gpio_chip *altera_gc = devm_kzalloc(&pdev->dev,
 				sizeof(*altera_gc), GFP_KERNEL);
 	if (altera_gc == NULL) {
@@ -283,6 +304,7 @@ int altera_gpio_probe(struct platform_device *pdev)
 	}
 	altera_gc->domain = 0;
 
+	printk("altera_gpio_probe\n");
 	spin_lock_init(&altera_gc->gpio_lock);
 
 	id = pdev->id;
@@ -340,6 +362,24 @@ int altera_gpio_probe(struct platform_device *pdev)
 
 	irq_set_handler_data(altera_gc->mapped_irq, altera_gc);
 	irq_set_chained_handler(altera_gc->mapped_irq, altera_gpio_irq_handler);
+
+
+/*
+	test_gpio = of_get_named_gpio(node,"inter_gpios",0);
+	if(test_gpio > 0){
+
+		
+		printk(KERN_INFO"altera_gpio_probe: get inter_gpios \n");
+		tmp_irq = __gpio_to_irq(test_gpio);
+		printk(KERN_INFO"irq is %d\n",tmp_irq);
+		ret = request_irq(tmp_irq,altera_gpio_irq_test,IRQF_TRIGGER_FALLING,"gpio irq",altera_gc);
+		if(ret){
+			printk(KERN_INFO"altera_gpio_probe: requst irq error\n");
+		}
+		
+		//gpio_direction_output(test_gpio,0);
+	}
+*/
 
 	return 0;
 

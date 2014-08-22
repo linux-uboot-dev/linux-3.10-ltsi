@@ -770,7 +770,15 @@
 			spidev@0 {
 				compatible = "spidev";
 				reg = <0>;	/* chip select */
-				spi-max-frequency = <100000000>;
+				spi-max-frequency = <1000000>;
+				enable-dma = <1>;
+			};
+			ads7846@1 {
+				compatible = "ti,tsc2046";
+				
+				pendown-gpio = < &altera_pio 0 1 >;
+				reg = <1>;	/* chip select */
+				spi-max-frequency = <1000000>;
 				enable-dma = <1>;
 			};
 		};
@@ -921,7 +929,7 @@
 				  < 0xFF208000 0x00000400 >;
 			reg-names = "vfr_reg","itc_reg";
 			mem-word-width = < 64 >;
-			//status = "disabled";
+			status = "disabled";
 		}; 
 		
 		msi_to_gic_gen_0: msi@0xFF200000 {                        
@@ -933,7 +941,7 @@
 			interrupts = < 0 42 4 >;
 			msi-controller = < 1 >;        
 			num-vectors = < 32 >;      
-			//status = "disabled";
+			status = "disabled";
         }; 
                 
 		pcie_cv_hip_avmm_0: pcie@0x000000000 {
@@ -947,7 +955,22 @@
 			#interrupt-cells = < 1 >;
 			altr,msi = < &msi_to_gic_gen_0 >;        
 			device_type = "pci";     
-			//status = "disabled";
+			status = "disabled";
 		}; 
+		
+		altera_pio: gpio@0xff200000{
+			compatible = "altr,pio-1.0";
+			reg = <0xff200000 0x10>;
+			interrupts = <0 40 4>;
+			altr,gpio-bank-width = <32>;
+			altr,interrupt_type = <2>;		//failing edge
+			#gpio-cells = <2>;
+			gpio-controller;
+			inter_gpios = < &altera_pio 0 1 >;
+			// test_gpios = < &altera_pio 1 1 >;
+			#interrupt-cells = <1>;
+			interrupt-controller;
+			
+		};
 	};
 };
