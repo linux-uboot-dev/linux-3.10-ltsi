@@ -25,7 +25,7 @@ struct ads7846_platform_data {
 	 * are taken with settle_delay us apart, and the second one is used.
 	 * ~150 uSec with 0.01uF caps.
 	 */
-	u16	settle_delay_usecs;
+	u32	settle_delay_usecs;
 
 	/* If set to non-zero, after samples are taken this delay is applied
 	 * and penirq is rechecked, to help avoid false events.  This value
@@ -40,10 +40,10 @@ struct ads7846_platform_data {
 	u16	y_min, y_max;
 	u16	pressure_min, pressure_max;
 
-	u16	debounce_max;		/* max number of additional readings
+	u32	debounce_max;		/* max number of additional readings
 					 * per sample */
-	u16	debounce_tol;		/* tolerance used for filtering */
-	u16	debounce_rep;		/* additional consecutive good readings
+	u32	debounce_tol;		/* tolerance used for filtering */
+	u32	debounce_rep;		/* additional consecutive good readings
 					 * required after the first two */
 	int	gpio_pendown;		/* the GPIO used to decide the pendown
 					 * state if get_pendown_state == NULL */

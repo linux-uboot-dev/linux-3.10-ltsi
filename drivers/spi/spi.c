@@ -862,8 +862,10 @@ static void of_register_spi_devices(struct spi_master *master)
 		spi->chip_select = be32_to_cpup(prop);
 
 		/* Mode (clock phase/polarity/etc.) */
-		if (of_find_property(nc, "spi-cpha", NULL))
+		if (of_find_property(nc, "spi-cpha", NULL)){
+			printk(KERN_INFO"find spi-cpha-----------------\n");
 			spi->mode |= SPI_CPHA;
+		}
 		if (of_find_property(nc, "spi-cpol", NULL))
 			spi->mode |= SPI_CPOL;
 		if (of_find_property(nc, "spi-cs-high", NULL))

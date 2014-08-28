@@ -96,6 +96,7 @@ struct ads7846_packet {
 };
 
 struct ads7846 {
+	int cs_gpio;
 	struct input_dev	*input;
 	char			phys[32];
 	char			name[32];
@@ -644,12 +645,12 @@ static struct attribute_group ads784x_attr_group = {
 static int get_pendown_state(struct ads7846 *ts)
 {
 	int gpio;
-	printk("get_pendown_state\n");
+	//printk("get_pendown_state\n");
 	if (ts->get_pendown_state)
 		return ts->get_pendown_state();
 
 	gpio= gpio_get_value(ts->gpio_pendown);
-	printk("get_pendown_state:gpio = %d\n",gpio);
+	//printk("get_pendown_state:gpio = %d\n",gpio);
 	return !gpio_get_value(ts->gpio_pendown);
 }
 
@@ -737,6 +738,7 @@ static void ads7846_read_state(struct ads7846 *ts)
 	int action;
 	int error;
 
+	printk(KERN_INFO"msg_count is %d\n",ts->msg_count);
 	while (msg_idx < ts->msg_count) {
 
 		ts->wait_for_sync();
@@ -793,6 +795,8 @@ static void ads7846_report_state(struct ads7846 *ts)
 	 * from on-the-wire format as part of debouncing to get stable
 	 * readings.
 	 */
+
+	
 	if (ts->model == 7845) {
 		x = *(u16 *)packet->tc.x_buf;
 		y = *(u16 *)packet->tc.y_buf;
@@ -870,7 +874,8 @@ static void ads7846_report_state(struct ads7846 *ts)
 			ts->pendown = true;
 			dev_vdbg(&ts->spi->dev, "DOWN\n");
 		}
-
+		printk(KERN_INFO"input_report_abs ing\n");
+		printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);
 		input_report_abs(input, ABS_PRESSURE, ts->pressure_max - Rt);
@@ -888,18 +893,58 @@ static irqreturn_t ads7846_hard_irq(int irq, void *handle)
 	return get_pendown_state(ts) ? IRQ_WAKE_THREAD : IRQ_HANDLED;
 }
 
+static inline ssize_t
+ads7846_sync_write(unsigned char  *txbuf, size_t len,struct spi_device *spi)
+{
+	struct spi_transfer	t = {
+			.tx_buf		= txbuf,
+			.len		= len,
+		};
+	struct spi_message	m;
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+	return spi_sync(spi, &m);
+}
+static inline ssize_t
+ads7846_sync_read(unsigned char  *buf, size_t len,struct spi_device *spi)
+{
+	struct spi_transfer	t = {
+			.rx_buf		= buf,
+			.len		= len,
+		};
+	struct spi_message	m;
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+	return spi_sync(spi, &m);
+}
+
 
 static irqreturn_t ads7846_irq(int irq, void *handle)
 {
 	struct ads7846 *ts = handle;
+	unsigned char cmd_read_y = 0x91;
+	unsigned char cmd_read_y_en = 0x90;
+	unsigned char cmd_read_x = 0xd1;
+	unsigned char read_x[] = {0,0,0};
+	unsigned char read_y[] = {0,0,0};
+	unsigned char read_x_val = 0 ;
+	u16 readx_value = 0;
+	u16 ready_value = 0;
+	int i;
 
 	/* Start with a small delay before checking pendown state */
 	msleep(TS_POLL_DELAY);
 
 	printk(KERN_INFO"ads7846_irq\n");
+
+
+
+	
 	while (!ts->stopped && get_pendown_state(ts)) {
 
-		/* pen is down, continue with the measurement */
+		
 		ads7846_read_state(ts);
 
 		if (!ts->stopped)
@@ -919,6 +964,43 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 		ts->pendown = false;
 		dev_vdbg(&ts->spi->dev, "UP\n");
 	}
+	
+	
+/*
+	while(1){
+		msleep(500);
+		
+		for(i=0;i<5;i++){
+			ads7846_sync_write(&cmd_read_y,1,ts->spi);
+			msleep(1);
+			ads7846_sync_read(read_y,2,ts->spi);
+			readx_value = (read_y[0]&0x7f);
+
+			readx_value <<= 8;
+			readx_value |= read_y[1];
+			readx_value >>= 3;
+			printk(KERN_INFO" %d   ",readx_value);
+		}
+
+		printk(KERN_INFO"\r\n x=");	
+		for(i=0;i<5;i++){
+			ads7846_sync_write(&cmd_read_x,1,ts->spi);
+			msleep(1);
+			ads7846_sync_read(read_x,2,ts->spi);
+			ready_value = (read_x[0]&0x7f);
+			ready_value <<= 8;
+			ready_value |= read_x[1];
+			ready_value >>= 3;
+			printk(KERN_INFO"%d    ",ready_value);
+		}	
+		printk(KERN_INFO"\r\n y=");
+
+	}
+*/
+//	ads7846_sync_write(&cmd_read_y_en,1,ts->spi);
+//	ads7846_sync_read(read_x,2,ts->spi);
+
+	
 
 	return IRQ_HANDLED;
 }
@@ -1228,6 +1310,8 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 	struct ads7846_platform_data *pdata;
 	struct device_node *node = dev->of_node;
 	const struct of_device_id *match;
+	struct	property *tmp_pro;
+	u32 tmp_u32;
 
 	if (!node) {
 		dev_err(dev, "Device does not have associated DT data\n");
@@ -1253,8 +1337,11 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 
 	pdata->swap_xy = of_property_read_bool(node, "ti,swap-xy");
 
-	of_property_read_u16(node, "ti,settle-delay-usec",
+	of_property_read_u32(node, "settle-delay-usec",
 			     &pdata->settle_delay_usecs);
+
+	
+	
 	of_property_read_u16(node, "ti,penirq-recheck-delay-usecs",
 			     &pdata->penirq_recheck_delay_usecs);
 
@@ -1269,16 +1356,23 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 	of_property_read_u16(node, "ti,pressure-min", &pdata->pressure_min);
 	of_property_read_u16(node, "ti,pressure-max", &pdata->pressure_max);
 
-	of_property_read_u16(node, "ti,debounce-max", &pdata->debounce_max);
-	of_property_read_u16(node, "ti,debounce-tol", &pdata->debounce_tol);
-	of_property_read_u16(node, "ti,debounce-rep", &pdata->debounce_rep);
+	of_property_read_u32(node, "debounce-max", &pdata->debounce_max);
+	of_property_read_u32(node, "debounce-tol", &pdata->debounce_tol);
+	of_property_read_u32(node, "debounce-rep", &pdata->debounce_rep);
 
-	of_property_read_u32(node, "ti,pendown-gpio-debounce",
+
+	of_property_read_u32(node, "pendown-gpio-debounce",
 			     &pdata->gpio_pendown_debounce);
 
 	pdata->wakeup = of_property_read_bool(node, "linux,wakeup");
 
 	pdata->gpio_pendown = of_get_named_gpio(dev->of_node, "pendown-gpio", 0);
+
+
+	printk(KERN_INFO"debounce-max=%d\n",pdata->debounce_max);
+	printk(KERN_INFO"debounce-tol=%d\n",pdata->debounce_tol);
+	printk(KERN_INFO"debounce-re=%d\n",pdata->debounce_rep);
+	printk(KERN_INFO"settle_delay_usecs=%d\n",pdata->settle_delay_usecs);
 	printk(KERN_INFO"gpio_pendown gpio is %d\n",pdata->gpio_pendown);
 
 	return pdata;
@@ -1301,12 +1395,21 @@ static int ads7846_probe(struct spi_device *spi)
 	int err;
 	int test_gpio;
 	int tmp_irq;
+	int cs_gpio;
 
 	test_gpio = of_get_named_gpio(spi->dev.of_node,"pendown-gpio",0);
 	tmp_irq = __gpio_to_irq(test_gpio);
 	if (tmp_irq > 0)
 		spi->irq = tmp_irq;
 
+
+	cs_gpio = of_get_named_gpio(spi->dev.of_node,"cs-gpio",0);
+	if(cs_gpio > 0){
+		printk("fourn cs-gpio %d\n",cs_gpio);
+		gpio_direction_output(cs_gpio,1);
+		
+	}
+	
 	printk(KERN_INFO"ads7846_probe: irq =  %d\n",spi->irq);
 	if (!spi->irq) {
 		dev_dbg(&spi->dev, "no IRQ?\n");
@@ -1345,6 +1448,8 @@ static int ads7846_probe(struct spi_device *spi)
 	ts->spi = spi;
 	ts->input = input_dev;
 
+	ts->cs_gpio = cs_gpio;
+	
 	mutex_init(&ts->lock);
 	init_waitqueue_head(&ts->wait);
 
