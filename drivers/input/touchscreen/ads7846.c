@@ -18,7 +18,6 @@
  *  published by the Free Software Foundation.
  */
 
- #define DEBUG 1
 #include <linux/types.h>
 #include <linux/hwmon.h>
 #include <linux/init.h>
@@ -63,6 +62,9 @@
 
 #define TS_POLL_DELAY	1	/* ms delay before the first sample */
 #define TS_POLL_PERIOD	5	/* ms delay between samples */
+
+#define TS_CS_HIGH 1
+#define TS_CS_LOW 0
 
 /* this driver doesn't aim at the peak continuous sample rate */
 #define	SAMPLE_BITS	(8 /*cmd*/ + 16 /*sample*/ + 2 /* before, after */)
@@ -738,7 +740,6 @@ static void ads7846_read_state(struct ads7846 *ts)
 	int action;
 	int error;
 
-	printk(KERN_INFO"msg_count is %d\n",ts->msg_count);
 	while (msg_idx < ts->msg_count) {
 
 		ts->wait_for_sync();
@@ -874,8 +875,7 @@ static void ads7846_report_state(struct ads7846 *ts)
 			ts->pendown = true;
 			dev_vdbg(&ts->spi->dev, "DOWN\n");
 		}
-		printk(KERN_INFO"input_report_abs ing\n");
-		printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
+		//printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);
 		input_report_abs(input, ABS_PRESSURE, ts->pressure_max - Rt);
@@ -889,7 +889,6 @@ static irqreturn_t ads7846_hard_irq(int irq, void *handle)
 {
 	struct ads7846 *ts = handle;
 
-	printk(KERN_INFO"ads7846_hard_irq\n");
 	return get_pendown_state(ts) ? IRQ_WAKE_THREAD : IRQ_HANDLED;
 }
 
@@ -924,6 +923,7 @@ ads7846_sync_read(unsigned char  *buf, size_t len,struct spi_device *spi)
 static irqreturn_t ads7846_irq(int irq, void *handle)
 {
 	struct ads7846 *ts = handle;
+	/*
 	unsigned char cmd_read_y = 0x91;
 	unsigned char cmd_read_y_en = 0x90;
 	unsigned char cmd_read_x = 0xd1;
@@ -933,17 +933,14 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 	u16 readx_value = 0;
 	u16 ready_value = 0;
 	int i;
+	*/
 
+	/* enalbe the chip, Tcss >= 100ns   */
+	gpio_set_value(ts->cs_gpio,TS_CS_LOW);
 	/* Start with a small delay before checking pendown state */
 	msleep(TS_POLL_DELAY);
 
-	printk(KERN_INFO"ads7846_irq\n");
-
-
-
-	
 	while (!ts->stopped && get_pendown_state(ts)) {
-
 		
 		ads7846_read_state(ts);
 
@@ -966,7 +963,8 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 	}
 	
 	
-/*
+/**************** use for derectlly test ****************
+	// the first read data must be ignored
 	while(1){
 		msleep(500);
 		
@@ -996,12 +994,9 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 		printk(KERN_INFO"\r\n y=");
 
 	}
-*/
-//	ads7846_sync_write(&cmd_read_y_en,1,ts->spi);
-//	ads7846_sync_read(read_x,2,ts->spi);
-
+****************************************************/
 	
-
+	gpio_set_value(ts->cs_gpio,TS_CS_HIGH);
 	return IRQ_HANDLED;
 }
 
@@ -1310,8 +1305,6 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 	struct ads7846_platform_data *pdata;
 	struct device_node *node = dev->of_node;
 	const struct of_device_id *match;
-	struct	property *tmp_pro;
-	u32 tmp_u32;
 
 	if (!node) {
 		dev_err(dev, "Device does not have associated DT data\n");
@@ -1365,15 +1358,8 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 			     &pdata->gpio_pendown_debounce);
 
 	pdata->wakeup = of_property_read_bool(node, "linux,wakeup");
-
 	pdata->gpio_pendown = of_get_named_gpio(dev->of_node, "pendown-gpio", 0);
 
-
-	printk(KERN_INFO"debounce-max=%d\n",pdata->debounce_max);
-	printk(KERN_INFO"debounce-tol=%d\n",pdata->debounce_tol);
-	printk(KERN_INFO"debounce-re=%d\n",pdata->debounce_rep);
-	printk(KERN_INFO"settle_delay_usecs=%d\n",pdata->settle_delay_usecs);
-	printk(KERN_INFO"gpio_pendown gpio is %d\n",pdata->gpio_pendown);
 
 	return pdata;
 }
@@ -1393,24 +1379,26 @@ static int ads7846_probe(struct spi_device *spi)
 	struct input_dev *input_dev;
 	unsigned long irq_flags;
 	int err;
-	int test_gpio;
-	int tmp_irq;
+	int pendow_gpio;
+	int pendow_irq;
 	int cs_gpio;
 
-	test_gpio = of_get_named_gpio(spi->dev.of_node,"pendown-gpio",0);
-	tmp_irq = __gpio_to_irq(test_gpio);
-	if (tmp_irq > 0)
-		spi->irq = tmp_irq;
+	pendow_gpio = of_get_named_gpio(spi->dev.of_node,"pendown-gpio",0);
+	pendow_irq = __gpio_to_irq(pendow_gpio);
+	if (pendow_irq > 0)
+		spi->irq = pendow_irq;
 
 
 	cs_gpio = of_get_named_gpio(spi->dev.of_node,"cs-gpio",0);
 	if(cs_gpio > 0){
-		printk("fourn cs-gpio %d\n",cs_gpio);
-		gpio_direction_output(cs_gpio,1);
-		
+		gpio_request(cs_gpio,"ads7846 cs pin");
+		gpio_direction_output(cs_gpio,TS_CS_HIGH);	
 	}
-	
-	printk(KERN_INFO"ads7846_probe: irq =  %d\n",spi->irq);
+	else{
+		dev_dbg(&spi->dev, "no cs PIN?\n");
+		return -EINVAL;
+	}	
+
 	if (!spi->irq) {
 		dev_dbg(&spi->dev, "no IRQ?\n");
 		return -EINVAL;
@@ -1455,10 +1443,7 @@ static int ads7846_probe(struct spi_device *spi)
 
 	pdata = dev_get_platdata(&spi->dev);
 	if (!pdata) {
-		
 		pdata = ads7846_probe_dt(&spi->dev);
-
-		
 		if (IS_ERR(pdata))
 			return PTR_ERR(pdata);
 	}
