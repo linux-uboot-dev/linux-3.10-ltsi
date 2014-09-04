@@ -875,7 +875,7 @@ static void ads7846_report_state(struct ads7846 *ts)
 			ts->pendown = true;
 			dev_vdbg(&ts->spi->dev, "DOWN\n");
 		}
-		printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
+		//printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);
 		input_report_abs(input, ABS_PRESSURE, ts->pressure_max - Rt);
@@ -935,8 +935,11 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 	int i;
 	*/
 
-	/* enalbe the chip, Tcss >= 100ns   */
+	/* emy add begin,enalbe the chip, Tcss >= 100ns   */
 	gpio_set_value(ts->cs_gpio,TS_CS_LOW);
+	/* emy add end */
+
+	
 	/* Start with a small delay before checking pendown state */
 	msleep(TS_POLL_DELAY);
 
@@ -963,7 +966,7 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 	}
 	
 	
-/**************** use for derectlly test ****************
+/**************** emy add begin for derectlly test ****************
 	// the first read data must be ignored
 	while(1){
 		msleep(500);
@@ -994,9 +997,12 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 		printk(KERN_INFO"\r\n y=");
 
 	}
-****************************************************/
-	
+******************emy add end***************************/
+
+	/* emy add begin */
 	gpio_set_value(ts->cs_gpio,TS_CS_HIGH);
+	/* emy add end */
+
 	return IRQ_HANDLED;
 }
 
@@ -1330,11 +1336,6 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 
 	pdata->swap_xy = of_property_read_bool(node, "ti,swap-xy");
 
-	of_property_read_u32(node, "settle-delay-usec",
-			     &pdata->settle_delay_usecs);
-
-	
-	
 	of_property_read_u16(node, "ti,penirq-recheck-delay-usecs",
 			     &pdata->penirq_recheck_delay_usecs);
 
@@ -1349,10 +1350,12 @@ static const struct ads7846_platform_data *ads7846_probe_dt(struct device *dev)
 	of_property_read_u16(node, "ti,pressure-min", &pdata->pressure_min);
 	of_property_read_u16(node, "ti,pressure-max", &pdata->pressure_max);
 
+	/* emy modify begin */
 	of_property_read_u32(node, "debounce-max", &pdata->debounce_max);
 	of_property_read_u32(node, "debounce-tol", &pdata->debounce_tol);
 	of_property_read_u32(node, "debounce-rep", &pdata->debounce_rep);
-
+	of_property_read_u32(node, "settle-delay-usec",&pdata->settle_delay_usecs);
+	/* emy modify end */
 
 	of_property_read_u32(node, "pendown-gpio-debounce",
 			     &pdata->gpio_pendown_debounce);
@@ -1383,11 +1386,11 @@ static int ads7846_probe(struct spi_device *spi)
 	int pendow_irq;
 	int cs_gpio;
 
+	/* emy add begin */
 	pendow_gpio = of_get_named_gpio(spi->dev.of_node,"pendown-gpio",0);
 	pendow_irq = __gpio_to_irq(pendow_gpio);
 	if (pendow_irq > 0)
 		spi->irq = pendow_irq;
-
 
 	cs_gpio = of_get_named_gpio(spi->dev.of_node,"cs-gpio",0);
 	if(cs_gpio > 0){
@@ -1398,6 +1401,7 @@ static int ads7846_probe(struct spi_device *spi)
 		dev_dbg(&spi->dev, "no cs PIN?\n");
 		return -EINVAL;
 	}	
+	/* emy add end */
 
 	if (!spi->irq) {
 		dev_dbg(&spi->dev, "no IRQ?\n");
