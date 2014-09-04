@@ -875,7 +875,7 @@ static void ads7846_report_state(struct ads7846 *ts)
 			ts->pendown = true;
 			dev_vdbg(&ts->spi->dev, "DOWN\n");
 		}
-		//printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
+		printk(KERN_INFO"x=%d ,y= %d\n",packet->tc.x, packet->tc.y);
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);
 		input_report_abs(input, ABS_PRESSURE, ts->pressure_max - Rt);
