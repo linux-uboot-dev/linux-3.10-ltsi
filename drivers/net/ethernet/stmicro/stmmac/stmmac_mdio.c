@@ -208,8 +208,13 @@ int stmmac_mdio_register(struct net_device *ndev)
 
 	if (mdio_bus_data->irqs)
 		irqlist = mdio_bus_data->irqs;
-	else
+	else{
+		/* emy add begin */
+		for (addr = 0; addr < PHY_MAX_ADDR; addr++)
+			priv->mii_irq[addr] = PHY_POLL;
+		/* emy add end */
 		irqlist = priv->mii_irq;
+	}	
 
 #ifdef CONFIG_OF
 	if (priv->device->of_node)

@@ -298,8 +298,9 @@ static void dwmac1000_set_eee_pls(void __iomem *ioaddr, int link)
 		value |= LPI_CTRL_STATUS_PLS;
 	else
 		value &= ~LPI_CTRL_STATUS_PLS;
-
-	writel(value, ioaddr + LPI_CTRL_STATUS);
+	/*  emy remove begin */
+	//writel(value, ioaddr + LPI_CTRL_STATUS);
+	/*  emy remove end */
 }
 
 static void dwmac1000_set_eee_timer(void __iomem *ioaddr, int ls, int tw)

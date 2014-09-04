@@ -42,6 +42,7 @@
 #include <asm/irq.h>
 #include <asm/uaccess.h>
 
+static int gPhy_state = 0;
 /**
  * phy_print_status - Convenience function to print out the current phy status
  * @phydev: the phy_device struct
@@ -837,17 +838,22 @@ void phy_state_machine(struct work_struct *work)
 
 			if (err)
 				break;
+			/* emy add begin */
+			if(gPhy_state != phydev->link){
 
-			if (phydev->link) {
-				phydev->state = PHY_RUNNING;
-				netif_carrier_on(phydev->attached_dev);
-			} else {
-				phydev->state = PHY_NOLINK;
-				netif_carrier_off(phydev->attached_dev);
+				if (phydev->link) {
+					phydev->state = PHY_RUNNING;
+					netif_carrier_on(phydev->attached_dev);
+				} else {
+					phydev->state = PHY_NOLINK;
+					netif_carrier_off(phydev->attached_dev);
+				}
+
+				phydev->adjust_link(phydev->attached_dev);
 			}
-
-			phydev->adjust_link(phydev->attached_dev);
-
+			gPhy_state = phydev->link;
+			/* emy add end */
+			
 			if (PHY_POLL != phydev->irq)
 				err = phy_config_interrupt(phydev,
 						PHY_INTERRUPT_ENABLED);
