@@ -115,6 +115,7 @@ static int altera_gpio_irq_set_type(struct irq_data *d,
 
 static unsigned int altera_gpio_irq_startup(struct irq_data *d)
 {
+
 	altera_gpio_irq_unmask(d);
 
 	return 0;
@@ -122,6 +123,7 @@ static unsigned int altera_gpio_irq_startup(struct irq_data *d)
 
 static void altera_gpio_irq_shutdown(struct irq_data *d)
 {
+	printk(KERN_INFO"altera_gpio_irq_shutdown\n");
 	altera_gpio_irq_unmask(d);
 }
 
@@ -138,7 +140,10 @@ static int altera_gpio_get(struct gpio_chip *gc, unsigned offset)
 {
 	struct of_mm_gpio_chip *mm_gc = to_of_mm_gpio_chip(gc);
 
-	return !!(readl(mm_gc->regs + ALTERA_GPIO_DATA) >> offset);
+	
+	//return !!( (readl(mm_gc->regs + ALTERA_GPIO_DATA) >> offset));
+	/* modify */
+	return !!( (readl(mm_gc->regs + ALTERA_GPIO_DATA) >> offset)&0x00000001 );
 }
 
 static void altera_gpio_set(struct gpio_chip *gc, unsigned offset, int value)
@@ -209,7 +214,7 @@ static int altera_gpio_to_irq(struct gpio_chip *gc, unsigned offset)
 	struct of_mm_gpio_chip *mm_gc = to_of_mm_gpio_chip(gc);
 	struct altera_gpio_chip *altera_gc = container_of(mm_gc,
 				struct altera_gpio_chip, mmchip);
-
+	
 	if (!altera_gc->domain)
 		return -ENXIO;
 	if (offset < altera_gc->mmchip.gc.ngpio)
@@ -226,7 +231,7 @@ static void altera_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
 	unsigned long status;
 
 	int i;
-
+	//printk("altera_gpio_irq_test called\n");
 	chained_irq_enter(chip, desc);
 	/* Handling for level trigger and edge trigger is different */
 	if (altera_gc->interrupt_trigger == IRQ_TYPE_LEVEL_HIGH) {
@@ -248,6 +253,12 @@ static void altera_gpio_irq_handler(unsigned int irq, struct irq_desc *desc)
 				if (status & BIT(i)) {
 					generic_handle_irq(irq_find_mapping(
 						altera_gc->domain, i));
+
+
+					writel_relaxed(0,
+					mm_gc->regs + ALTERA_GPIO_EDGE_CAP);
+					
+
 				}
 			}
 		}
@@ -271,10 +282,12 @@ static struct irq_domain_ops altera_gpio_irq_ops = {
 	.xlate = irq_domain_xlate_onecell,
 };
 
+
 int altera_gpio_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node;
 	int i, id, reg, ret;
+	
 	struct altera_gpio_chip *altera_gc = devm_kzalloc(&pdev->dev,
 				sizeof(*altera_gc), GFP_KERNEL);
 	if (altera_gc == NULL) {
@@ -283,6 +296,7 @@ int altera_gpio_probe(struct platform_device *pdev)
 	}
 	altera_gc->domain = 0;
 
+	printk("altera_gpio_probe\n");
 	spin_lock_init(&altera_gc->gpio_lock);
 
 	id = pdev->id;
