@@ -30,6 +30,15 @@
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 
+#include <sound/core.h>
+#include <sound/jack.h>
+#include <sound/pcm.h>
+#include <sound/pcm_params.h>
+#include <sound/tlv.h>
+#include <sound/soc.h>
+#include <sound/initval.h>
+#include <trace/events/asoc.h>
+
 
 //Chrontel type define: 
 typedef unsigned long long	ch_uint64;
@@ -388,6 +397,7 @@ static ch_uint32 CH7033_VGA_RegTable[][2] = {
 
 //hdmi,i2s in ,1024x768@65Mhz in,1024x768,60Hz double output
 static ch_uint32 CH7033_DVI_RegTable[][2] = {
+/* right  16bit*/
  	{ 0x03, 0x04 },
 	{ 0x52, 0xC3 },
 	{ 0x5A, 0x06 },
@@ -519,6 +529,7 @@ static ch_uint32 CH7033_DVI_RegTable[][2] = {
 	{ 0x56, 0x4D },
 	{ 0x60, 0x01 },
 	{ 0x61, 0x60 },
+
 };
 
 #define REGTABLE_DVI_LEN	((sizeof(CH7033_DVI_RegTable))/(2*sizeof(ch_uint32)))
@@ -657,6 +668,87 @@ static int thread_hpd(void *arg)
     return 0;
 }
 
+static int ch7033_hw_params(struct snd_pcm_substream *substream,
+			    struct snd_pcm_hw_params *params,
+			    struct snd_soc_dai *dai)
+{
+
+	return 0;
+}
+
+static int ch7033_digital_mute(struct snd_soc_dai *codec_dai, int mute)
+{
+	return 0;
+}
+
+static int ch7033_set_dai_fmt(struct snd_soc_dai *codec_dai,
+			      unsigned int fmt)
+{
+	return 0;
+}
+static int ch7033_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+				 int clk_id, unsigned int freq, int dir)
+{
+	return 0;
+}
+
+
+static const struct snd_soc_dai_ops ch7033_dai_ops = {
+	.hw_params	= ch7033_hw_params,
+	.digital_mute	= ch7033_digital_mute,
+	.set_fmt	= ch7033_set_dai_fmt,
+	.set_sysclk	= ch7033_set_dai_sysclk,
+};
+
+/* for hdmi audio  */
+static struct snd_soc_dai_driver ch7033_dai = {
+	.name = "ch7033-hdmi",
+	.playback = {
+		.stream_name = "Playback",
+		.channels_min = 2,
+		.channels_max = 2,
+		.rates = SNDRV_PCM_RATE_44100,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_U16_LE,
+	},
+	.ops = &ch7033_dai_ops,
+	.symmetric_rates = 1,
+};
+
+
+static int codec_ch7033_probe(struct snd_soc_codec *codec)
+{
+	return 0;
+}
+
+static int codec_ch7033_remove(struct snd_soc_codec *codec)
+{
+	return 0;
+}
+
+static int codec_ch7033_suspend(struct snd_soc_codec *codec)
+{
+	return 0;
+}
+
+static int codec_ch7033_resume(struct snd_soc_codec *codec)
+{
+	return 0;
+}
+
+static struct snd_soc_codec_driver soc_codec_dev_ch7033 = {
+	.probe =	codec_ch7033_probe,
+	.remove =	codec_ch7033_remove,
+	.suspend =	codec_ch7033_suspend,
+	.resume =	codec_ch7033_resume,
+	//.controls = ch7033_snd_controls,
+	//.num_controls = ARRAY_SIZE(ch7033_snd_controls),
+	//.dapm_widgets = ch7033_dapm_widgets,
+	//.num_dapm_widgets = ARRAY_SIZE(ch7033_dapm_widgets),
+	//.dapm_routes = ch7033_intercon,
+	//.num_dapm_routes = ARRAY_SIZE(ch7033_intercon),
+};
+
+
 /*
  * I2C init/probing/exit functions
  */
@@ -669,7 +761,7 @@ static int  ch7033_probe(struct i2c_client *client,
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	static struct task_struct       *thread_handle;
 	struct device_node *np = client->dev.of_node;
-
+	int ret = -EINVAL;
 
 	g_client = client;
 
@@ -694,6 +786,16 @@ static int  ch7033_probe(struct i2c_client *client,
 	
 	//InitializeCH7033(VGA);
 	InitializeCH7033(DVI);
+
+	ret = snd_soc_register_codec(&client->dev,
+			&soc_codec_dev_ch7033, &ch7033_dai, 1);
+	if(ret)
+	{
+		printk(KERN_ERR "Register ch7033 audio codec failed!\n");
+		return ret;
+	}
+	
+	printk(KERN_INFO "ch7033_probe........................ OK\n");
 
 /*
 	thread_handle = kthread_create(thread_hpd, (void *)hpd_gpio, "hpd");
@@ -731,6 +833,7 @@ static int ch7033_resume(struct i2c_client *client)
 #define ch7033_resume		NULL
 
 #endif /* CONFIG_PM */
+
 
 static const struct of_device_id ch7033_of_match[] = {
 	{ .compatible = "chrontel,ch7033", },

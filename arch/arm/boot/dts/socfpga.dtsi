@@ -966,7 +966,7 @@
 			compatible = "altr,pio-1.0";
 			reg = <0xff200010 0x10>;
 			//reg = <0xff200000 0x10>;
-			interrupts = <0 44 4>;
+			interrupts = <0 45 4>;
 			//interrupts = <0 40 4>;
 			altr,gpio-bank-width = <32>;
 			altr,interrupt_type = <2>;		//failing edge
@@ -976,6 +976,13 @@
 			#interrupt-cells = <1>;
 			interrupt-controller;
 			
+		};
+		altera_i2s_0:i2s@0xff210040 {
+			compatible = "altera,fpga-i2s";
+			reg = <0xff210040 0x000018>,
+			        <0xff200060 0x00001c>;
+			reg-names = "I2s","IDMA";
+			interrupts = <0 44 4>;	
 		};
 	};
 };

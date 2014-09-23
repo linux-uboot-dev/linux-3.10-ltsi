@@ -142,6 +142,11 @@
 			};
 			
 		};
+		sound {
+			compatible = "altera,altera-audio-ch7033";
+			altera,i2s-controller = <&altera_i2s_0>;
+			altera,audio-codec = <&ch7033>;
+		};
 	};
 };
 

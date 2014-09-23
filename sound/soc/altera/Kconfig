@@ -1,0 +1,24 @@
+config SND_SOC_ALTERA_CYCLONE_V
+	tristate "SoC Audio for the Altera System-on-Chip"
+	depends on ARCH_SOCFPGA
+	select REGMAP_MMIO
+	help
+	  Say Y or M here if you want support for SoC audio on lark board
+	  using altera cyclone V soc.
+
+
+config SND_SOC_ALTERA_I2S
+	tristate
+	depends on SND_SOC_ALTERA_CYCLONE_V && ARCH_SOCFPGA
+	help
+	  Say Y or M if you want to add support for codecs attached to the
+	  altera fpga I2S interface. You will also need to select the individual
+	  machine drivers to support below.
+
+config SND_SOC_ALTERA_CH7033
+	tristate "SoC Audio support for Lark board using a ch7033 hdmi codec"
+	depends on SND_SOC_ALTERA_CYCLONE_V && I2C
+	select SND_SOC_ALTERA_I2S
+	help
+	  Say Y or M here if you want to add support for SoC audio on Lark
+	  board using the ch7033 hdmi codec, this is a alsa machine driver.
