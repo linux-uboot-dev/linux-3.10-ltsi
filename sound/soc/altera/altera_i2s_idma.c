@@ -219,7 +219,6 @@ static int idma_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		prtd->state &= ~ST_RUNNING;
-		altera_i2s_stop_playback(i2s);
 		idma_control(IDMA_STOP);
 		break;
 

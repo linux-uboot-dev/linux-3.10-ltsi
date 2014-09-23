@@ -780,9 +780,9 @@
 				reg = <1>;	
 				spi-max-frequency = <3000000>;
 				settle-delay-usec = <1>;
-				debounce-rep = <3>;
-				debounce-max = <5>;
-				debounce-tol = <20>;
+				debounce-rep = <2>;
+				debounce-max = <4>;
+				debounce-tol = <50>;
 				enable-dma = <1>;
 			};
 		};
